@@ -17,6 +17,7 @@ export default function App() {
     ]
   })
   const [input, setInput] = useState('')
+  const [dueDateInput, setDueDateInput] = useState('')
   const [filter, setFilter] = useState('all')
   const [deletedItem, setDeletedItem] = useState(null) // { todo, index }
   const timerRef = useRef(null)
@@ -29,8 +30,9 @@ export default function App() {
   const addTodo = () => {
     const text = input.trim()
     if (!text) return
-    setTodos([...todos, { id: Date.now(), text, done: false, dueDate: null, priority: 'normal' }])
+    setTodos([...todos, { id: Date.now(), text, done: false, dueDate: dueDateInput || null, priority: 'normal' }])
     setInput('')
+    setDueDateInput('')
   }
 
   const toggleTodo = (id) =>
@@ -110,6 +112,12 @@ export default function App() {
             placeholder="What needs doing?"
             className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
           />
+          <input
+            type="date"
+            value={dueDateInput}
+            onChange={(e) => setDueDateInput(e.target.value)}
+            className="px-3 py-2 border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          />
           <button
             onClick={addTodo}
             className="px-4 py-2 bg-indigo-600 text-white rounded-md font-medium hover:bg-indigo-700 transition"
@@ -136,28 +144,41 @@ export default function App() {
         </div>
 
         <ul className="space-y-2">
-          {visible.map((todo) => (
-            <li
-              key={todo.id}
-              className="flex items-center gap-3 px-3 py-2 rounded-md border border-slate-200 hover:bg-slate-50"
-            >
-              <button
-                onClick={() => toggleTodo(todo.id)}
-                className={`flex-1 text-left ${
-                  todo.done ? 'line-through text-slate-400' : 'text-slate-800'
-                }`}
+          {visible.map((todo) => {
+            const isOverdue = !todo.done && todo.dueDate && (() => {
+              const today = new Date();
+              today.setHours(0, 0, 0, 0);
+              const due = new Date(todo.dueDate);
+              due.setHours(0, 0, 0, 0);
+              return due < today;
+            })();
+
+            return (
+              <li
+                key={todo.id}
+                className={`flex items-center gap-3 px-3 py-2 rounded-md border ${isOverdue ? 'bg-red-50 border-red-300' : 'border-slate-200'} hover:bg-slate-50`}
               >
-                {todo.text}
-              </button>
-              <button
-                onClick={() => deleteTodo(todo.id)}
-                className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
-                aria-label="Delete todo"
-              >
-                ×
-              </button>
-            </li>
-          ))}
+                <button
+                  onClick={() => toggleTodo(todo.id)}
+                  className={`flex-1 text-left ${todo.done ? 'line-through text-slate-400' : isOverdue ? 'text-red-600' : 'text-slate-800'}`}
+                >
+                  {todo.text}
+                  {todo.dueDate && (
+                    <span className="text-sm text-slate-500 ml-2">
+                      {new Date(todo.dueDate).toLocaleDateString()}
+                    </span>
+                  )}
+                </button>
+                <button
+                  onClick={() => deleteTodo(todo.id)}
+                  className="text-slate-400 hover:text-red-500 text-lg font-bold px-2"
+                  aria-label="Delete todo"
+                >
+                  ×
+                </button>
+              </li>
+            );
+          })}
           {visible.length === 0 && (
             <li className="text-center text-slate-400 py-4 text-sm">
               Nothing here.
